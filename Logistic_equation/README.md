@@ -29,8 +29,8 @@ over a fixed time grid $t \in [0, 1]$ with 100 equally spaced points.
 
 ## Sample Plots
 
-![Predicted vs Exact logistic solutions](sample_plots/predictions.png)
-![Test MSE per epoch](sample_plots/loss_curve.png)
+![Predicted vs Exact logistic solutions](sample_plots/example_predictions.png)
+![Test MSE per epoch](sample_plots/example_loss_curve.png)
 
 ---
 
