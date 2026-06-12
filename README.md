@@ -49,9 +49,9 @@ Each solver follows the same three-step workflow:
 ## Requirements
 
 - Python 3.x
-- numpy
-- pandas
-- matplotlib
+- numpy 1.21.5
+- pandas 2.0.0
+- matplotlib 3.5.1
 
 ```bash
 pip install numpy pandas matplotlib
