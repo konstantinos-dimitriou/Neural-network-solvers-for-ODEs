@@ -87,6 +87,7 @@ network output to the exact solution. Similar to prediction an evaluation plot i
 saved to `PLOTS/`.
 
 **Run tests**
+
 Move to TESTS folder and run the commands
 ```bash
 python generate_data_tests.py
