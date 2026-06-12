@@ -56,9 +56,10 @@ This implementation is adapted from the MNIST digit recognition framework descri
 - [Neural Networks playlist](https://www.youtube.com/watch?v=8bNIkfRJZpo) — Sebastian Lague
 
 The core network is a fully connected feedforward network trained with mini-batch SGD
-and backpropagation. Hidden layers use `tanh` activation; the output layer is linear,
-which is appropriate for a regression target. Weights are initialised with He scaling
-to avoid vanishing gradients.
+and backpropagation. Hidden layers use `tanh` or `sigmoid` activation; the output layer is linear,
+which is appropriate for a regression target. Weights are initialised with Xavier/Glorot scaling
+(1/sqrt(fan_in)) to keep activation variance stable across layers and avoid vanishing gradients,
+which is appropriate for tanh and sigmoid hidden units.
 
 ---
 
@@ -82,7 +83,8 @@ Loss curve and prediction plots are saved to `PLOTS/`.
 python solve_ode.py
 ```
 Loads the trained model and evaluates it on a set of $(u_0, r)$ pairs, comparing the
-network output to the exact solution.
+network output to the exact solution. Similar to prediction an evaluation plot is
+saved to `PLOTS/`.
 
 **Run tests**
 ```bash
