@@ -10,7 +10,7 @@ repeated numerical integration with a single forward pass at evaluation time.
 The [logistic differential equation](https://en.wikipedia.org/wiki/Logistic_function#Logistic_differential_equation)
 models population growth with a carrying capacity:
 
-$$\frac{dP}{dt} = r \cdot P\bigl(1-\frac{P}{K}\bigr), \qquad P(0) = P_0$$
+$$\frac{dP}{dt} = r \cdot P \biggl( 1-\frac{P}{K} \biggr), \qquad P(0) = P_0$$
 
 where $r > 0$ is the growth rate, $K > 0$ is the carrying capacity and $P_0 \in (0, K)$ denotes the initial population.
 By applying the normalization $u = P/K$ one arrives at the equation
