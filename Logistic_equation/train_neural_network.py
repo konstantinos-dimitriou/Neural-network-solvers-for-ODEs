@@ -105,19 +105,6 @@ def train_with_tracking(net, training_data, test_data,
     n = len(training_data)
 
     for epoch in range(epochs):
-        """
-        if epoch >= 3*epochs/4:
-            current_lr = learning_rate * 0.125
-        elif epoch >= 2*epochs/4:
-            current_lr = learning_rate * 0.25
-        elif epoch >= epochs/4:
-            current_lr = learning_rate * 0.5
-        else:
-            current_lr = learning_rate   
-        """
-        #current_lr = learning_rate * (0.98 ** epoch)
-        #current_lr = max([learning_rate * (0.98 ** epoch),0.002])
-
         np.random.shuffle(training_data)
 
         mini_batches = [
@@ -131,7 +118,6 @@ def train_with_tracking(net, training_data, test_data,
 
         mse = net.evaluate_mse(test_data)
         loss_history.append(mse)
-        #print(f"Epoch {epoch:>3d} | learning_rate: {current_lr} | test MSE: {mse:.6f}")
         print(f"Epoch {epoch:>3d} | test MSE: {mse:.6f}")
 
     return loss_history
@@ -169,7 +155,7 @@ def main():
     mini_batch_size = 32    # or 64
     
     #learning_rate   = 0.005 # Best for tanh
-    learning_rate   = 0.1   # Best for sigmoid
+    learning_rate   = 0.05   # Best for sigmoid
 
     print(f"Epochs: {epochs}  |  Mini-batch: {mini_batch_size}  |  lr: {learning_rate} | Actiavtion: {activation_function}\n")
 
