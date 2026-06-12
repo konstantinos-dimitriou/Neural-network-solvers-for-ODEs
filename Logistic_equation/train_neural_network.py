@@ -139,8 +139,7 @@ def main():
     # Define network
     # Input:  (u0, r)         → 2 neurons
     # Output: u(t0)...u(t99)  → 100 neurons
-    layer_sizes = (2, 128, 128, 100)    # Best for sigmoid
-    layer_sizes = (2, 256, 128, 100)    # Best for tanh
+    layer_sizes = (2, 256, 128, 100)
     print(f"\nNetwork architecture: {layer_sizes}")
 
     #activation_function = "tanh"
