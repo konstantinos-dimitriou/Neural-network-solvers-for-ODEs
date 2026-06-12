@@ -53,7 +53,7 @@ over a fixed time grid $t \in [0, 1]$ with 100 equally spaced points.
 This implementation is adapted from the MNIST digit recognition framework described in:
 
 - [Neural Networks and Deep Learning](http://neuralnetworksanddeeplearning.com/) — Michael Nielsen
-- [Neural Networks playlist](https://www.youtube.com/watch?v=8bNIkfRJZpo) — 3Blue1Brown
+- [Neural Networks playlist](https://www.youtube.com/watch?v=8bNIkfRJZpo) — Sebastian Lague
 
 The core network is a fully connected feedforward network trained with mini-batch SGD
 and backpropagation. Hidden layers use `tanh` activation; the output layer is linear,
