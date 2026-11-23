@@ -39,16 +39,13 @@ into two qualitatively different regimes, separated by the parabola $B = 1 + A^2
 \item For $B > 1 + A^2$ the fixed point is unstable and the trajectories converge to a stable limit cycle.
 \end{itemize}
 
+## First results
+[Hardest regime](sample_plots/evaluation_near_hopf_ground_truth.png)
+[Comparison with other algorithms in oscillating regime](sample_plots/evaluation_oscillating_with_other_solvers.png)
 
 
 
 
-
-
-
-
-
-## OLD BELOW
 
 <!---
 
