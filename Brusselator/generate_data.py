@@ -30,8 +30,9 @@ import matplotlib.pyplot as plt
 
 # Fix data generation settings
 SEED = 123
-LOG2_N = 13       # total number of samples = 2**13 = 8192 (Sobol likes powers of 2)
-TRAIN_FRACTION = 0.7
+LOG2_N = 15       # total number of samples = 2**15 = 32768 (Sobol likes powers of 2)
+TRAIN_FRACTION = 0.8
+VAL_FRACTION = 0.1
 
 # Parameter box: name -> (low, high). Order = column order of X.
 # Fix simulation settings
@@ -79,12 +80,12 @@ def solve_brusselator(A, B, x0, y0, t_eval, method=METHOD, rtol=RTOL, atol=ATOL)
 
 
 # Sampling parameter space
-def sample_parameters(sample_size=LOG2_N, seed=SEED):
+def sample_parameters(exponent_log2_n=LOG2_N, seed=SEED):
     # Scrambled Sobol samples in the parameter box, shape (2**log2_n, 4).
     lower_bounds = np.array([r[0] for r in RANGES.values()])
     upper_bounds = np.array([r[1] for r in RANGES.values()])
     sampler = qmc.Sobol(d=len(RANGES), scramble=True, seed=seed)
-    unit = sampler.random_base2(m=sample_size)
+    unit = sampler.random_base2(m=exponent_log2_n)
     return qmc.scale(unit, lower_bounds, upper_bounds)
 
 
@@ -169,19 +170,27 @@ def main():
     elapsed = time.perf_counter() - start
     print(f"Done in {elapsed:.1f} s ({1e3 * elapsed / n:.2f} ms per trajectory).")
 
-    # 3. random 70/30 split (shuffled, seeded). Sobol points are ordered, so we
-    #    must shuffle before splitting.
+    # 3. random 80/10/10 (train/validation/test) split (shuffled, seeded). Sobol points are ordered,
+    # so we must shuffle before splitting.
     rng = np.random.default_rng(SEED)
     perm = rng.permutation(n)
-    n_train = int(round(TRAIN_FRACTION * n))
-    train_idx, test_idx = perm[:n_train], perm[n_train:]
+
+    n_train = int(round(TRAIN_FRACTION * n))   # 26214
+    n_val = int(round(VAL_FRACTION * n))       # 3277
+    train_idx = perm[:n_train]
+    val_idx = perm[n_train:n_train + n_val]
+    test_idx = perm[n_train + n_val:]          # 3277
+
+    #n_train = int(round(TRAIN_FRACTION * n))
+    #train_idx, test_idx = perm[:n_train], perm[n_train:]
 
     save_npz(DATA_DIR / "train.npz", sampled_parameters[train_idx], ODE_data[train_idx], t)
+    save_npz(DATA_DIR / "validation.npz", sampled_parameters[train_idx], ODE_data[val_idx], t)
     save_npz(DATA_DIR / "test.npz", sampled_parameters[test_idx], ODE_data[test_idx], t)
-    print(f"Saved {len(train_idx)} train and {len(test_idx)} test samples to {DATA_DIR}/")
+    print(f"Saved {len(train_idx)} train, {len(val_idx)} validation and {len(test_idx)} test samples to {DATA_DIR}/")
 
     # 4. a plot to look at
-    plot_examples(t, FIG_DIR / "sample_trajectories.png")
+    plot_examples(t, FIG_DIR / "generation_sample_trajectories.png")
     print(f"Saved example plot to {FIG_DIR / 'generation_sample_trajectories.png'}")
 
     # quick info on regimes
