@@ -13,8 +13,6 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from scalers import BlockStandardScaler
-
 
 # Settings
 SEED = 123
