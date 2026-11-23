@@ -18,9 +18,12 @@ from sklearn.preprocessing import StandardScaler
 SEED = 123
 
 HIDDEN_LAYERS = (128, 128, 128)
+#HIDDEN_LAYERS = (512, 512, 512)
+
 ACTIVATION = "tanh"
 SOLVER = "adam"
 LEARNING_RATE = 1e-3
+#LEARNING_RATE = 1e-4
 BATCH_SIZE = 128
 MAX_EPOCHS = 500
 N_ITER_NO_CHANGE = 20      # early stopping patience (epochs)
@@ -131,7 +134,6 @@ def build_model(n_t):
     ])
     return TransformedTargetRegressor(
         regressor=regressor,
-        #transformer=BlockStandardScaler(n_t=n_t),   # <-- target scaling
         transformer=StandardScaler(),   # <-- target scaling
     )
 
