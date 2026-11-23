@@ -50,9 +50,9 @@ into two qualitatively different regimes, separated by the parabola $B = 1 + A^2
 
 ## OLD BELOW
 
-[comment]: <> (This is a comment, it will not be included)
-[comment]: <> The network learns the parameter-to-solution map $(u_0, r) \mapsto (u(t_0), \dots, u(t_{99}))$
-[comment]: <> over a fixed time grid $t \in [0, 1]$ with 100 equally spaced points.
+[//]: # <> (This is a comment, it will not be included)
+[//]: # <> The network learns the parameter-to-solution map $(u_0, r) \mapsto (u(t_0), \dots, u(t_{99}))$
+[//]: # <> over a fixed time grid $t \in [0, 1]$ with 100 equally spaced points.
 
 ---
 
