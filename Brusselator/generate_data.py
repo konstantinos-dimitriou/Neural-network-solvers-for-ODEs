@@ -185,7 +185,7 @@ def main():
     #train_idx, test_idx = perm[:n_train], perm[n_train:]
 
     save_npz(DATA_DIR / "train.npz", sampled_parameters[train_idx], ODE_data[train_idx], t)
-    save_npz(DATA_DIR / "validation.npz", sampled_parameters[train_idx], ODE_data[val_idx], t)
+    save_npz(DATA_DIR / "validation.npz", sampled_parameters[val_idx], ODE_data[val_idx], t)
     save_npz(DATA_DIR / "test.npz", sampled_parameters[test_idx], ODE_data[test_idx], t)
     print(f"Saved {len(train_idx)} train, {len(val_idx)} validation and {len(test_idx)} test samples to {DATA_DIR}/")
 
