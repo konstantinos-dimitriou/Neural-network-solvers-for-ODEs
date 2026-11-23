@@ -6,3 +6,5 @@ __pycache__/
 DATA/
 TRAINED_NN/
 PLOTS/
+data/
+figures/
