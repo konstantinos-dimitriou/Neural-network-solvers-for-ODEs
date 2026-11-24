@@ -1,3 +1,6 @@
+"""Evaluate one trained model (selected from MLflow) on the test set and make comparison plots."""
+
+import argparse
 import time
 
 import numpy as np
@@ -5,23 +8,20 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import joblib
+import mlflow
+import mlflow.sklearn
 
-# Reuse the Runge-Kutta solver from the data generation and the helpers from training
-from generate_data import solve_brusselator
-from train_neural_network import (
-    load_data, relative_l2_error, print_summary, DATA_DIR, MODEL_DIR, FIG_DIR,
-)
+from . import config
+from .dataset import dataset_path, load_dataset
+from .metrics import print_summary, relative_l2_error, summarize_errors
+from .ode import REGIMES, classify_regimes, solve_brusselator
 
 
-# Settings
-SEED = 123
+# Settings specific to the evaluation
 N_SAMPLES_PER_FIGURE = 3      # test samples shown per regime (one column each)
-NEAR_HOPF_DELTA = 0.25        # half-width of the "near Hopf" band around B = 1 + A^2
 N_TIMING = 500                # test samples used for the timing / accuracy table
 
 # Other solvers at SciPy's default tolerances
-# (ground truth = DOP853 with rtol 1e-10, atol 1e-12, see generate_data.py)
 RTOL_DEFAULT = 1e-3
 ATOL_DEFAULT = 1e-6
 OTHER_SOLVERS = {
@@ -29,7 +29,6 @@ OTHER_SOLVERS = {
     "Radau": dict(method="Radau", rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT),
 }
 
-REGIMES = ["stable", "near_hopf", "oscillating"]
 STYLES = {
     "Ground truth":   dict(color="black", linestyle="-", linewidth=2.5),
     "Neural network": dict(color="tab:red", linestyle="--", linewidth=1.5),
@@ -38,34 +37,30 @@ STYLES = {
 }
 
 
-# Regimes
-def classify_regimes(sampled_parameters, delta=NEAR_HOPF_DELTA):
-    """
-    Regime of each parameter set, relative to the Hopf line B = 1 + A^2:
-    stable      : B < 1 + A^2 - delta
-    near_hopf   : |B - (1 + A^2)| <= delta
-    oscillating : B > 1 + A^2 + delta
-    """
-    A, B = sampled_parameters[:, 0], sampled_parameters[:, 1]
-    margin = B - (1.0 + A ** 2)
-    return np.where(margin < -delta, "stable",
-                    np.where(margin > delta, "oscillating", "near_hopf"))
+# Model selection
+def parse_args():
+    parser = argparse.ArgumentParser(description="Evaluate a trained model on the test set.")
+    parser.add_argument("--run-id", help="MLflow run id of the model (default: latest finished run)")
+    return parser.parse_args()
 
 
-def summarize_by_regime(regimes, errors):
-    """Mean / median / max relative L2 error for all samples and for each regime.
-    Same structure as summarize_errors in train_neural_network.py (works with print_summary)."""
-    masks = {"all": np.ones(len(errors), dtype=bool)}
-    masks.update({name: regimes == name for name in REGIMES})
-    return {
-        name: {
-            "n": int(mask.sum()),
-            "mean": float(errors[mask].mean()),
-            "median": float(np.median(errors[mask])),
-            "max": float(errors[mask].max()),
-        }
-        for name, mask in masks.items()
-    }
+def find_run(run_id=None):
+    """Return the MLflow run to evaluate: the given run id, else the latest finished run."""
+    mlflow.set_tracking_uri(config.MLFLOW_TRACKING_URI)
+    client = mlflow.MlflowClient()
+
+    if run_id is not None:
+        return client.get_run(run_id)
+
+    experiment = client.get_experiment_by_name(config.MLFLOW_EXPERIMENT)
+    if experiment is None:
+        raise SystemExit(f"No MLflow experiment '{config.MLFLOW_EXPERIMENT}' found. Train a model first.")
+    runs = client.search_runs([experiment.experiment_id],
+                              filter_string="attributes.status = 'FINISHED'",
+                              order_by=["attributes.start_time DESC"], max_results=1)
+    if not runs:
+        raise SystemExit("No finished run found.")
+    return runs[0]
 
 
 # Runge-Kutta solutions
@@ -123,7 +118,6 @@ def compare_timing(model, sampled_parameters, ODE_data, t, rng):
     relative L2 error against the stored ground truth."""
     idx = rng.choice(len(sampled_parameters), size=N_TIMING, replace=False)
     params, truth = sampled_parameters[idx], ODE_data[idx]
-
     rows = []
 
     start = time.perf_counter()
@@ -154,24 +148,34 @@ def compare_timing(model, sampled_parameters, ODE_data, t, rng):
 
 
 def main():
-    rng = np.random.default_rng(SEED)
-    FIG_DIR.mkdir(exist_ok=True)
+    args = parse_args()
+    rng = np.random.default_rng(config.SEED)
 
-    # Load trained model (includes input and output scaling) and the test data
-    print("Loading model and test data...")
-    model = joblib.load(MODEL_DIR / "brusselator_mlp.joblib")
-    test_parameters, test_ODE_data = load_data(DATA_DIR / "test.npz")
-    t = np.load(DATA_DIR / "test.npz")["t"]
+    # Select and load the model (includes input and output scaling)
+    run = find_run(args.run_id)
+    run_id = run.info.run_id
+    print(f"Evaluating MLflow run {run_id} (name: {run.info.run_name})")
+    model = mlflow.sklearn.load_model(f"runs:/{run_id}/model")
+
+    fig_dir = config.FIG_DIR / f"evaluation_{run_id[:8]}"
+    fig_dir.mkdir(parents=True, exist_ok=True)
+
+    # Data
+    test_parameters, test_ODE_data, t = load_dataset(dataset_path("test"))
+    _, train_ODE_data, _ = load_dataset(dataset_path("train"))
     n_t = len(t)
     regimes = classify_regimes(test_parameters)
     print(f"  Test samples: {len(test_parameters)}")
 
+    # Baseline: always predict the mean training trajectory, ignoring the inputs
+    baseline_pred = np.tile(train_ODE_data.mean(axis=0), (len(test_parameters), 1))
+    print_summary("Baseline (mean trajectory), test set",
+                  summarize_errors(test_parameters, test_ODE_data, baseline_pred))
+
     # NN predictions are in the original units (the scaling is undone by the model)
     nn_ODE_data = model.predict(test_parameters)
-
-    # Test-set error summary
-    errors = relative_l2_error(test_ODE_data, nn_ODE_data)
-    print_summary("Neural network, test set", summarize_by_regime(regimes, errors))
+    print_summary("Neural network, test set",
+                  summarize_errors(test_parameters, test_ODE_data, nn_ODE_data))
 
     # Figures: for each regime one image against the ground truth only,
     # and one image that also includes the other Runge-Kutta algorithms
@@ -186,24 +190,23 @@ def main():
             "Neural network": nn_ODE_data[idx].reshape(-1, 2, n_t),
         }
         plot_regime_comparison(
-            FIG_DIR / f"evaluation_{regime}_ground_truth.png",
-            f"Regime: {regime} | ground truth: DOP853, rtol 1e-10, atol 1e-12",
+            fig_dir / f"{regime}_ground_truth.png",
+            f"Regime: {regime} | run {run_id[:8]} | ground truth: DOP853, "
+            f"rtol {config.RTOL:g}, atol {config.ATOL:g}",
             parameters, t, curves)
 
         for name, kwargs in OTHER_SOLVERS.items():
             curves[name] = solve_with(parameters, t, **kwargs)
         plot_regime_comparison(
-            FIG_DIR / f"evaluation_{regime}_with_other_solvers.png",
-            f"Regime: {regime} | other solvers at SciPy default tolerances "
-            f"(rtol {RTOL_DEFAULT:g}, atol {ATOL_DEFAULT:g})",
+            fig_dir / f"{regime}_with_other_solvers.png",
+            f"Regime: {regime} | run {run_id[:8]} | other solvers at SciPy default "
+            f"tolerances (rtol {RTOL_DEFAULT:g}, atol {ATOL_DEFAULT:g})",
             parameters, t, curves)
 
-    # Timing and accuracy
     compare_timing(model, test_parameters, test_ODE_data, t, rng)
 
 
 if __name__ == "__main__":
     start = time.time()
     main()
-    elapsed = (time.time() - start) / 60
-    print(f"\nTotal computation time: {elapsed:.2f} minutes.")
+    print(f"\nTotal computation time: {(time.time() - start) / 60:.2f} minutes.")

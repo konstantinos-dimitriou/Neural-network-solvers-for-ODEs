@@ -69,6 +69,8 @@ def train_model(hyperparameters=None, run_name=None):
         mlflow.log_params(params)
         mlflow.log_param("seed", config.SEED)
 
+        print("Training model ...\n")
+
         model = build_model(params)
         model.fit(train_parameters, train_ODE_data)
         mlp = model.regressor_.named_steps["mlp"]

@@ -7,7 +7,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 #ROOT_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT_DIR / "data"
 #MODEL_DIR = ROOT_DIR / "models"
-FIG_DIR = ROOT_DIR / "figures"
+FIG_DIR = ROOT_DIR / "outputs"
 
 # MLflow (default local file store)
 #MLFLOW_TRACKING_URI = (ROOT_DIR / "mlruns").as_uri()
