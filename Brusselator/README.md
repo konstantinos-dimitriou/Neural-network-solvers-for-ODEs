@@ -1,147 +1,185 @@
-# Brusselator — Neural Network Solver
+# Brusselator — Neural Network Surrogate Solver
 
-A from-scratch neural network trained to solve the normalised logistic ODE, replacing
-repeated numerical integration with a single forward pass at evaluation time.
+A neural network trained to approximate solutions of the nonlinear Brusselator ODE system.
+The project includes data generation using numerical Runge–Kutta integration, model training,
+and a three-stage greedy hyperparameter tuning procedure.
 
 ---
 
-## The Brusselator System of Equations
+## The Brusselator System
 
-The [Brusselator](https://en.wikipedia.org/wiki/Brusselator) is a system of two ordinary differential equations
-that acts as a toy model for an autocatalytic reaction
-$$
-\begin{align*}
-A&\to X\\
-2X+Y&\to 3X\\
-B+X&\to Y+D\\
-X&\to E 
-\end{align*}
-$$
+The [Brusselator](https://en.wikipedia.org/wiki/Brusselator) is a mathematical model of an autocatalytic chemical reaction:
 
-The ODE system is
-$$
-\begin{align*}
-\frac{dx}{dt} &= A + x^2y - (B+1)x ,\\
-\frac{dy}{dt} &= Bx - x^2y ,\\
-x(0) = x_0,\quad& y(0) = y_0 ,
-\end{align*}
-$$
-where $A,B>0$ are scalar constants (the concentration of the reactants $A,B$), $x(t),y(t)$ 
-are the unknown scalar functions that describe the concentrations of the two intermediate species X and Y over time, 
-and finally $x_0,y_0\geq0$ are the initial concentrations of X and Y.
+\[
+\begin{aligned}
+A &\to X,\\
+2X+Y &\to 3X,\\
+B+X &\to Y+D,\\
+X &\to E.
+\end{aligned}
+\]
 
+The corresponding system of ordinary differential equations is
 
-From a mathematical and modelling perspective the above problem is challenging for one as it is a nonlinear equation, 
-and for two since a Hopf bifurication appears at $B_c = 1 + A^2$, that means that the parameter plane (A,B) splits 
-into two qualitatively different regimes, separated by the parabola $B = 1 + A^2$.
-\begin{itemize}
-\item For $B < 1 + A^2$ the unique fixed point $(x^*,y^*)=(A, B/A)$ is stable, and all trajectories spiral into it.
-\item For $B > 1 + A^2$ the fixed point is unstable and the trajectories converge to a stable limit cycle.
-\end{itemize}
+\[
+\begin{aligned}
+\frac{dx}{dt} &= A+x^2y-(B+1)x,\\
+\frac{dy}{dt} &= Bx-x^2y,\\
+x(0)&=x_0,\qquad y(0)=y_0,
+\end{aligned}
+\]
 
-## First results
-![Hardest regime](sample_plots/evaluation_near_hopf_ground_truth.png)
-![Comparison with other algorithms in oscillating regime](sample_plots/evaluation_oscillating_with_other_solvers.png)
+where \(A,B>0\) are constant parameters, \(x(t),y(t)\) describe the concentrations of the substances \(X,Y\), and \(x_0,y_0\geq 0\)
+are their initial concentrations. The system is nonlinear and exhibits a Hopf bifurcation at
 
+\[
+B_c=1+A^2.
+\]
 
+This separates the parameter plane into two qualitatively different dynamical regimes:
 
+- **Stable regime:** For \(B<1+A^2\), the unique fixed point
+  \[
+  (x^*,y^*)=\left(A,\frac{B}{A}\right)
+  \]
+  is asymptotically stable, and trajectories converge to it.
+- **Oscillating regime:** For \(B>1+A^2\), the fixed point becomes unstable and trajectories approach a stable limit cycle.
 
+The network learns the parameter-to-solution map
 
-<!---
+\[
+(A,B,x_0,y_0)\mapsto
+\bigl(x(t_0),\ldots,x(t_{N_T-1}),
+y(t_0),\ldots,y(t_{N_T-1})\bigr)
+\]
 
-[//]: # <> (This is a comment, it will not be included)
-[//]: # <> The network learns the parameter-to-solution map $(u_0, r) \mapsto (u(t_0), \dots, u(t_{99}))$
-[//]: # <> over a fixed time grid $t \in [0, 1]$ with 100 equally spaced points.
+over a fixed time grid with $N_T = 200$ grid points, and $T = 20.0$ the finite time horizon.
 
 ---
 
 ## Sample Plots
-
-[comment]: <> ![Predicted vs Exact logistic solutions](sample_plots/example_predictions.png)
-[comment]: <> ![Test MSE per epoch](sample_plots/example_loss_curve.png)
+![Easiest: stable regime](sample_plots/stable_ground_truth.png)
+![Middle: oscillating regime](sample_plots/oscillating_ground_truth.png)
+![Hardest: near Hopf bifurication regime](sample_plots/near_hopf_ground_truth.png)
+![Comparison with other ode solvers](sample_plots/oscillating_with_other_solvers.png)
 
 ---
 
 ## Project Structure
 
-[comment]: <> - `generate_data.py` — samples $(u_0, r)$ pairs, computes exact solutions, saves to CSV
-[comment]: <> - `train_neural_network.py` — builds and trains the network, saves the trained model
-[comment]: <> - `solve_ode.py` — loads the trained network and evaluates it on new parameter pairs
-[comment]: <> - `neural_network.py` — self-contained NumPy implementation of the neural network
-[comment]: <> - `DATA/` — generated training and test CSVs
-[comment]: <> - `TRAINED_NN/` — saved model weights (`.npz`)
-[comment]: <> - `PLOTS/` — loss curve and prediction plots produced during training
-[comment]: <> - `sample_plots/` — example output plots for this README
-[comment]: <>- `TESTS/` — unit tests for all modules
+- `src/config.py` — central configuration of parameters, data ranges, solver settings, and paths
+- `src/ode.py` — Brusselator right-hand side, numerical solver, time grid, and regime classification
+- `src/dataset.py` — saving and loading datasets and metadata
+- `src/generate_data.py` — Sobol parameter sampling, numerical trajectory generation, and dataset splitting
+- `src/metrics.py` — relative \(L^2\) error calculation and error summaries
+- `src/train_neural_network.py` — model construction, training, and MLflow experiment logging
+- `src/hyperparameter_tuning.py` — greedy, three-stage hyperparameter tuning
+- `src/evaluate.py` — evaluation of trained models
+- `tests/` — unit tests for the project modules
+- `DATA/` — generated training, validation, and test datasets
+- `mlflow.db` — local MLflow tracking database
 
 ---
 
 ## Approach
 
-[comment]: <> This implementation is adapted from the MNIST digit recognition framework described in:
+Training data is generated by sampling the parameter space using a scrambled Sobol sequence.
+For each sampled parameter set, the corresponding ODE system is solved numerically using
+SciPy's `solve_ivp` with a Runge–Kutta method.
 
-[comment]: <> - [Neural Networks and Deep Learning](http://neuralnetworksanddeeplearning.com/) — Michael Nielsen
-[comment]: <> - [Neural Networks playlist](https://www.youtube.com/watch?v=8bNIkfRJZpo) — Sebastian Lague
+The neural network is implemented using scikit-learn's `MLPRegressor`. Input and output data
+are standardised using `StandardScaler`, and early stopping is used during training.
 
-[comment]: <> The core network is a fully connected feedforward network trained with mini-batch SGD
-[comment]: <> and backpropagation. Hidden layers use `tanh` or `sigmoid` activation; the output layer is linear,
-[comment]: <> which is appropriate for a regression target. Weights are initialised with Xavier/Glorot scaling
-[comment]: <> (1/sqrt(fan_in)) to keep activation variance stable across layers and avoid vanishing gradients,
-[comment]: <> which is appropriate for tanh and sigmoid hidden units.
+Model performance is evaluated using the relative \(L^2\) error between the predicted and reference trajectories.
+Results are summarised both across the entire dataset and separately for the different dynamical regimes.
+
+---
+
+## Hyperparameter Tuning
+
+Due to computational and hardware limitations, hyperparameter tuning follows a simple three-stage greedy approach.
+Each stage uses the best configuration found in the previous stage as its starting point.
+
+1. **Stage 1 — Network architecture:** Compare different network depths and widths to find the best hidden-layer architecture.
+2. **Stage 2 — Learning rate and batch size:** Using the best architecture from Stage 1, compare different learning rates and batch sizes.
+3. **Stage 3 — Activation and regularisation:** Using the best configuration from Stages 1 and 2, compare `tanh` and `relu` activation functions and different values of the regularisation parameter \(\alpha\).
+
+The validation mean relative \(L^2\) error is used to select the best configuration. Models that achieve a new best score are logged and saved using MLflow.
 
 ---
 
 ## How to Run
 
-[comment]: <> **1 — Generate data**
-[comment]: <> ```bash
-[comment]: <> python generate_data.py
-[comment]: <> ```
-[comment]: <> Produces `DATA/training_data.csv` (10 000 samples) and `DATA/testing_data.csv` (1 024 samples).
+Run the following commands from the project Brusselator/ directory.
 
-[comment]: <> **2 — Train the network**
-[comment]: <> ```bash
-[comment]: <> python train_neural_network.py
-[comment]: <> ```
-[comment]: <> Trains the network and saves the model to `TRAINED_NN/trained_model_logistic_ode.npz`.
-[comment]: <> Loss curve and prediction plots are saved to `PLOTS/`.
+**1 — Install dependencies**
 
-[comment]: <> **3 — Evaluate on new parameters**
-[comment]: <> ```bash
-[comment]: <> python solve_ode.py
-[comment]: <> ```
-[comment]: <> Loads the trained model and evaluates it on a set of $(u_0, r)$ pairs, comparing the
-[comment]: <> network output to the exact solution. Similar to prediction an evaluation plot is
-[comment]: <> saved to `PLOTS/`.
+```bash
+pip install -r requirements.txt
+```
 
-[comment]: <> **Run tests**
+**2 — Generate data**
 
-[comment]: <> Move to TESTS folder and run the commands
-[comment]: <> ```bash
-[comment]: <> python generate_data_tests.py
-[comment]: <> python neural_network_tests.py
-[comment]: <> python train_neural_network_tests.py
-[comment]: <> python solve_ode_tests.py
-[comment]: <> ```
+```bash
+python -m src.generate_data
+```
+
+Generates the training, validation, and test datasets in `data/`.
+
+**3 — Train the network**
+
+```bash
+python -m src.train_neural_network
+```
+
+Trains the network using the default hyperparameters and logs the results to MLflow, model runs are saved in mlruns/.
+
+**4 — Tune hyperparameters**
+
+```bash
+python -m src.hyperparameter_tuning
+```
+
+Runs the three-stage greedy hyperparameter search and logs the results to MLflow, the current best model runs are saved in mlruns/.
+
+**5 — Evaluate a trained model**
+
+```bash
+python -m src.evaluate --run-id YOUR_RUN_ID
+```
+
+Loads a model from an MLflow run and evaluates its predictions against the numerical reference solutions.
+The run_id can be found in the MLmodel file created inside the mlruns/ folder (e.g. run_id: 5fa4df22f16245afa137435654970780)
+
+**Run tests**
+
+```bash
+pytest -v
+```
+
+Runs all unit tests in the `tests/` directory.
 
 ---
 
 ## Requirements
 
-[comment]: <> - Python 3.x
-[comment]: <> - numpy 1.21.5
-[comment]: <> - pandas 2.0.0
-[comment]: <> - matplotlib 3.5.1
-[comment]: <> +++++++
+- Python 3.10 or newer
+- NumPy
+- SciPy
+- scikit-learn
+- Matplotlib
+- MLflow
+- skops
+- pytest (development dependency)
 
-[comment]: <> ```bash
-[comment]: <> pip install numpy pandas matplotlib
-[comment]: <> ```
+Install all dependencies from the project root:
+
+```bash
+pip install -r requirements.txt
+```
 
 ---
 
 ## License
 
 This project is licensed under the [MIT License](../LICENSE).
-
--->
