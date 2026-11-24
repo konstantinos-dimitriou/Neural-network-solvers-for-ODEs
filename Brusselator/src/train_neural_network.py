@@ -1,6 +1,12 @@
-"""Train one model on the training data and log it, with its metrics, to MLflow."""
+"""
+Train one model on the training data (train_model) and log it to MLflow (log_result).
+Training and logging are separate, so the caller decides what is logged.
+
+Run:  python -m src.train_neural_network
+"""
 
 import time
+from dataclasses import dataclass
 
 import mlflow
 import mlflow.sklearn
@@ -10,7 +16,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from . import config
-from .dataset import dataset_path, load_metadata, load_dataset
+from .dataset import dataset_path, load_dataset, load_metadata
 from .metrics import flatten_summary, print_summary, summarize_errors
 
 
@@ -20,10 +26,31 @@ DEFAULT_HYPERPARAMETERS = dict(
     solver="adam",
     learning_rate_init=1e-3,
     batch_size=128,
+    alpha=1e-4,               # L2 regularisation (sklearn default, listed so that it is explicit)
     max_iter=500,
     n_iter_no_change=20,      # early stopping patience (epochs)
     tol=1e-6,                 # minimum improvement of the internal validation score
 )
+
+
+@dataclass
+class TrainingResult:
+    """Everything produced by one training run."""
+    model: object
+    hyperparameters: dict
+    train_summary: dict       # relative L2 error on the training set (all samples and per regime)
+    val_summary: dict         # relative L2 error on the validation set
+    loss_curve: list          # training loss per epoch (scaled space)
+    validation_scores: list   # internal early-stopping validation score per epoch (R^2)
+    epochs_run: int
+    n_train: int
+    n_validation: int
+    training_seconds: float
+
+    @property
+    def val_score(self):
+        """Mean relative L2 error on the validation set (lower is better)."""
+        return self.val_summary["all"]["mean"]
 
 
 def build_model(hyperparameters=None, seed=config.SEED):
@@ -54,58 +81,85 @@ def build_model(hyperparameters=None, seed=config.SEED):
     )
 
 
-def train_model(hyperparameters=None, run_name=None):
-    """Train one model, log params / metrics / model to MLflow.
-    Returns the fitted model, the validation error summary and the MLflow run id."""
+def train_model(hyperparameters=None):
+    """Train one model and compute its training / validation errors."""
     params = {**DEFAULT_HYPERPARAMETERS, **(hyperparameters or {})}
 
     train_parameters, train_ODE_data, _ = load_dataset(dataset_path("train"))
     val_parameters, val_ODE_data, _ = load_dataset(dataset_path("validation"))
 
+    print("Training model ...")
+    
+    model = build_model(params)
+    start = time.perf_counter()
+    model.fit(train_parameters, train_ODE_data)
+    training_seconds = time.perf_counter() - start
+    mlp = model.regressor_.named_steps["mlp"]
+
+    # Predictions are in original units (scaling is undone by the model)
+    train_summary = summarize_errors(train_parameters, train_ODE_data,
+                                     model.predict(train_parameters))
+    val_summary = summarize_errors(val_parameters, val_ODE_data,
+                                   model.predict(val_parameters))
+
+    return TrainingResult(
+        model=model,
+        hyperparameters=params,
+        train_summary=train_summary,
+        val_summary=val_summary,
+        loss_curve=list(mlp.loss_curve_),
+        validation_scores=list(mlp.validation_scores_),
+        epochs_run=int(mlp.n_iter_),
+        n_train=len(train_parameters),
+        n_validation=len(val_parameters),
+        training_seconds=training_seconds,
+    )
+
+
+def log_result(result, experiment=config.MLFLOW_EXPERIMENT, run_name=None, tags=None,
+               log_model=True):
+    """Log a TrainingResult to MLflow (params, metrics, curves and, if wanted, the model).
+    Returns the MLflow run id."""
     mlflow.set_tracking_uri(config.MLFLOW_TRACKING_URI)
-    mlflow.set_experiment(config.MLFLOW_EXPERIMENT)
+    mlflow.set_experiment(experiment)
 
     with mlflow.start_run(run_name=run_name) as run:
-        mlflow.log_params(params)
+        mlflow.log_params(result.hyperparameters)
         mlflow.log_param("seed", config.SEED)
-        # Settings of the dataset the model is trained on (read from the data file)
+        if tags:
+            mlflow.set_tags(tags)
+
+        # Settings of the dataset the model was trained on (read from the data file)
         mlflow.log_params({f"data_{key}": value
                            for key, value in load_metadata(dataset_path("train")).items()})
-        mlflow.log_params({"n_train": len(train_parameters), "n_validation": len(val_parameters)})
-
-        print("Training model ...\n")
-
-        model = build_model(params)
-        model.fit(train_parameters, train_ODE_data)
-        mlp = model.regressor_.named_steps["mlp"]
-
-        
-
-        # Predictions are in original units (scaling is undone by the model)
-        train_summary = summarize_errors(train_parameters, train_ODE_data,
-                                         model.predict(train_parameters))
-        val_summary = summarize_errors(val_parameters, val_ODE_data,
-                                       model.predict(val_parameters))
+        mlflow.log_params({"n_train": result.n_train, "n_validation": result.n_validation})
 
         mlflow.log_metrics({
-            **flatten_summary("train", train_summary),
-            **flatten_summary("validation", val_summary),
-            "epochs_run": mlp.n_iter_,
+            **flatten_summary("train", result.train_summary),
+            **flatten_summary("validation", result.val_summary),
+            "epochs_run": result.epochs_run,
+            "training_seconds": result.training_seconds,
         })
-        for epoch, (loss, score) in enumerate(zip(mlp.loss_curve_, mlp.validation_scores_)):
+        for epoch, (loss, score) in enumerate(zip(result.loss_curve, result.validation_scores)):
             mlflow.log_metrics({"training_loss": loss, "internal_validation_score": score},
                                step=epoch)
 
-        mlflow.sklearn.log_model(model, name="model", skops_trusted_types=config.SKOPS_TRUSTED_TYPES)
+        if log_model:
+            mlflow.sklearn.log_model(result.model, name="model",
+                                     skops_trusted_types=config.SKOPS_TRUSTED_TYPES)
+            mlflow.set_tag("model_logged", "true")
 
-    return model, val_summary, run.info.run_id
+    return run.info.run_id
 
 
 def main():
     start = time.time()
-    _, val_summary, run_id = train_model()
-    print_summary("Validation set", val_summary)
-    print(f"\nMLflow run id: {run_id}")
+    result = train_model()
+    run_id = log_result(result)
+
+    print_summary("Validation set", result.val_summary)
+    print(f"\nStopped after {result.epochs_run} epochs ({result.training_seconds / 60:.2f} minutes of training)")
+    print(f"MLflow run id: {run_id}")
     print(f"Total computation time: {(time.time() - start) / 60:.2f} minutes.")
 
 

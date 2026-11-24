@@ -10,7 +10,7 @@ FIG_DIR = ROOT_DIR / "outputs"
 # MLflow (default local file store)
 MLFLOW_TRACKING_URI = f"sqlite:///{ROOT_DIR / 'mlflow.db'}"
 MLFLOW_EXPERIMENT = "brusselator"
-
+MLFLOW_TUNING_EXPERIMENT = "brusselator_tuning"
 
 # sklearn types that MLflow's safe model format (skops) has to be told to trust
 SKOPS_TRUSTED_TYPES = [
