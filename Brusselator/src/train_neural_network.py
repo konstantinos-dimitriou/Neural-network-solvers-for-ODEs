@@ -10,7 +10,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from . import config
-from .dataset import dataset_path, load_dataset
+from .dataset import dataset_path, load_metadata, load_dataset
 from .metrics import flatten_summary, print_summary, summarize_errors
 
 
@@ -68,6 +68,10 @@ def train_model(hyperparameters=None, run_name=None):
     with mlflow.start_run(run_name=run_name) as run:
         mlflow.log_params(params)
         mlflow.log_param("seed", config.SEED)
+        # Settings of the dataset the model is trained on (read from the data file)
+        mlflow.log_params({f"data_{key}": value
+                           for key, value in load_metadata(dataset_path("train")).items()})
+        mlflow.log_params({"n_train": len(train_parameters), "n_validation": len(val_parameters)})
 
         print("Training model ...\n")
 

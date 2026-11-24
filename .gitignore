@@ -1,7 +1,8 @@
 # Python bytecode
 __pycache__/
 *.pyc
-
+*.egg-info/
+.pytest_cache/
 
 # MLflow
 mlflow.db
@@ -15,4 +16,3 @@ PLOTS/
 # Brusselator
 data/
 outputs/
-models/

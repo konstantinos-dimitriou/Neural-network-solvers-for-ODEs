@@ -6,10 +6,14 @@ build-backend = "setuptools.build_meta"
 name = "brusselator"
 version = "0.1.0"
 requires-python = ">=3.10"
-dependencies = ["numpy", "scipy", "scikit-learn", "matplotlib", "pandas", "joblib", "mlflow"]
+dependencies = ["numpy", "scipy", "scikit-learn", "matplotlib", "mlflow", "skops"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
 
+[tool.setuptools]
+packages = ["src"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
