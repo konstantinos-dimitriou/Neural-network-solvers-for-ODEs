@@ -10,48 +10,48 @@ and a three-stage greedy hyperparameter tuning procedure.
 
 The [Brusselator](https://en.wikipedia.org/wiki/Brusselator) is a mathematical model of an autocatalytic chemical reaction:
 
-\[
+$$
 \begin{aligned}
 A &\to X,\\
 2X+Y &\to 3X,\\
 B+X &\to Y+D,\\
 X &\to E.
 \end{aligned}
-\]
+$$
 
 The corresponding system of ordinary differential equations is
 
-\[
+$$
 \begin{aligned}
 \frac{dx}{dt} &= A+x^2y-(B+1)x,\\
 \frac{dy}{dt} &= Bx-x^2y,\\
 x(0)&=x_0,\qquad y(0)=y_0,
 \end{aligned}
-\]
+$$
 
-where \(A,B>0\) are constant parameters, \(x(t),y(t)\) describe the concentrations of the substances \(X,Y\), and \(x_0,y_0\geq 0\)
+where $A,B>0$ are constant parameters, $x(t),y(t)$ describe the concentrations of the substances $X,Y$, and $x_0,y_0\geq 0$
 are their initial concentrations. The system is nonlinear and exhibits a Hopf bifurcation at
 
-\[
+$$
 B_c=1+A^2.
-\]
+$$
 
 This separates the parameter plane into two qualitatively different dynamical regimes:
 
-- **Stable regime:** For \(B<1+A^2\), the unique fixed point
-  \[
+- **Stable regime:** For $B<1+A^2$, the unique fixed point
+  $$
   (x^*,y^*)=\left(A,\frac{B}{A}\right)
-  \]
+  $$
   is asymptotically stable, and trajectories converge to it.
-- **Oscillating regime:** For \(B>1+A^2\), the fixed point becomes unstable and trajectories approach a stable limit cycle.
+- **Oscillating regime:** For $B>1+A^2$, the fixed point becomes unstable and trajectories approach a stable limit cycle.
 
 The network learns the parameter-to-solution map
 
-\[
+$$
 (A,B,x_0,y_0)\mapsto
 \bigl(x(t_0),\ldots,x(t_{N_T-1}),
 y(t_0),\ldots,y(t_{N_T-1})\bigr)
-\]
+$$
 
 over a fixed time grid with $N_T = 200$ grid points, and $T = 20.0$ the finite time horizon.
 
