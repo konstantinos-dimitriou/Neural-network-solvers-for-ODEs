@@ -44,5 +44,12 @@ def classify_regimes(sampled_parameters, delta=config.NEAR_HOPF_DELTA):
     """
     A, B = sampled_parameters[:, 0], sampled_parameters[:, 1]
     margin = B - (1.0 + A ** 2)
-    return np.where(margin < -delta, "stable",
-                    np.where(margin > delta, "oscillating", "near_hopf"))
+
+    tol = 1e-12
+
+    return np.where(
+        margin < -delta - tol, "stable",
+        np.where(margin > delta + tol, "oscillating", "near_hopf")
+    )
+#    return np.where(margin < -delta, "stable",
+#                    np.where(margin > delta, "oscillating", "near_hopf"))

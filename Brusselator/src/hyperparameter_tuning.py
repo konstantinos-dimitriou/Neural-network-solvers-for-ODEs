@@ -24,13 +24,14 @@ STAGE_GRIDS = {
     # Stage 1: capacity (width x depth), 9 runs
     1: {"hidden_layer_sizes": [(width,) * depth for depth in (3, 4, 5) for width in (128, 256, 512)]},
     # Stage 2: optimisation, 3 x 3 = 9 combinations (the one equal to the best so far is skipped)
-    # 2: {"learning_rate_init": [3e-4, 1e-3, 3e-3], "batch_size": [64, 128, 256]},
+    2: {"learning_rate_init": [3e-4, 1e-3, 3e-3], "batch_size": [64, 128, 256]},
     # Stage 3: activation and regularisation, 2 x 4 = 8 combinations
-    # 3: {"activation": ["tanh", "relu"], "alpha": [1e-5, 1e-4, 1e-3, 1e-2]},
+    3: {"activation": ["tanh", "relu"], "alpha": [1e-5, 1e-4, 1e-3, 1e-2]},
 }
 
 
 def describe(changes):
+    # Used for naming the differen model runs in the MLflow UI
     return "_".join(f"{key}={str(value).replace(' ', '')}" for key, value in changes.items())
 
 

@@ -4,15 +4,16 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
-# MLflow
-mlflow.db
-mlruns/
-
 # Project-specific generated folders
+
 # Logistic
 DATA/
 TRAINED_NN/
 PLOTS/
+
 # Brusselator
 data/
 outputs/
+# MLflow
+mlflow.db
+mlruns/
