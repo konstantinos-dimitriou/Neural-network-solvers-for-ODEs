@@ -2,6 +2,11 @@
 __pycache__/
 *.pyc
 
+
+# MLflow
+mlflow.db
+mlruns/
+
 # Project-specific generated folders
 DATA/
 TRAINED_NN/
