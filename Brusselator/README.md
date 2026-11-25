@@ -23,8 +23,8 @@ The corresponding system of ordinary differential equations is
 
 $$
 \begin{aligned}
-\frac{dx}{dt} &= A+x^2y-(B+1)x,\\
-\frac{dy}{dt} &= Bx-x^2y,\\
+\frac{dx(t)}{dt} &= A+x(t)^2y(t)-(B+1)x(t),\\
+\frac{dy(t)}{dt} &= Bx(t)-x(t)^2y(t),\\
 x(0)&=x_0,\qquad y(0)=y_0,
 \end{aligned}
 $$
