@@ -65,6 +65,12 @@ over a fixed time grid with $N_T = 200$ grid points, and $T = 20.0$ the finite t
 
 ---
 
+## Verdict
+
+First results look promising.
+
+---
+
 ## Project Structure
 
 - `src/config.py` — central configuration of parameters, data ranges, solver settings, and paths
