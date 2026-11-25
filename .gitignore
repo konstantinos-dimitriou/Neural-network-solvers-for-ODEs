@@ -1,8 +1,17 @@
-# Python bytecode
+# Python
 __pycache__/
 *.pyc
+*.egg-info/
+.pytest_cache/
 
 # Project-specific generated folders
+# Logistic
 DATA/
 TRAINED_NN/
 PLOTS/
+# Brusselator
+data/
+outputs/
+# MLflow
+mlflow.db
+mlruns/
