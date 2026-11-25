@@ -5,8 +5,6 @@ __pycache__/
 .pytest_cache/
 
 # Project-specific generated folders
-
-# Logistic
 # Logistic
 DATA/
 TRAINED_NN/
