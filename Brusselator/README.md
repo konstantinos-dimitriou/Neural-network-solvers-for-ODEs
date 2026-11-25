@@ -67,7 +67,7 @@ over a fixed time grid with $N_T = 200$ grid points, and $T = 20.0$ the finite t
 
 ## Verdict
 
-First results look promising.
+The first results look promising. The neural network is able to capture complex dynamics and roughly captures local and global minima. However, there seems to be some noise. More thorough hyperparameter tuning would certainly be beneficial. It should be noted, however, that the standard algorithms are already thoroughly optimised in the ODE setting, so it would be quite hard to beat these benchmarks. An approach like this could outperform its competitors in terms of speed in a PDE setting. Future projects will focus on such settings.
 
 ---
 
